@@ -8,7 +8,7 @@ def burn_subtitles(video_path, srt_path, output_path, delta_y=0):
     """烧录字幕到视频"""
     srt_escaped = srt_path.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
 
-    style = f"Fontname=Roboto,FontSize=11,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H40202020,BackColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,MarginV={delta_y}"
+    style = f"Fontname=AlibabaPuHuiTi-H,FontSize=10,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H800A0A0A,BackColour=&H00000000,BorderStyle=1,Outline=1,Shadow=1,Spacing=0,MarginV={delta_y}"
 
     ffmpeg_command = [
         "ffmpeg",
