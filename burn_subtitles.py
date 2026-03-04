@@ -1,16 +1,19 @@
 import subprocess
 import sys
 import os
+import argparse
 
 
-def burn_subtitles(video_path, srt_path, output_path):
+def burn_subtitles(video_path, srt_path, output_path, delta_y=0):
     """烧录字幕到视频"""
     srt_escaped = srt_path.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+
+    style = f"Fontname=Roboto,FontSize=11,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H40202020,BackColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,MarginV={delta_y}"
 
     ffmpeg_command = [
         "ffmpeg",
         "-i", video_path,
-        "-vf", f"subtitles='{srt_escaped}':force_style='Fontname=Roboto,FontSize=12,PrimaryColour=&H00FFFFFF,OutlineColour=&H40202020,BackColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0'",
+        "-vf", f"subtitles='{srt_escaped}':force_style='{style}'",
         "-c:v", "libx264",
         "-c:a", "aac",
         "-strict", "experimental",
@@ -27,22 +30,25 @@ def burn_subtitles(video_path, srt_path, output_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python burn_subtitles.py <video_path> [srt_path] [output_path]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("video_path", help="Input video file")
+    parser.add_argument("srt_path", nargs="?", help="Subtitle file (default: video base name.srt)")
+    parser.add_argument("output_path", nargs="?", help="Output video file (default: video base name_subtitled.mp4)")
+    parser.add_argument("--deltaY", type=int, default=0, help="Vertical offset for subtitle position")
+    args = parser.parse_args()
 
-    video_path = sys.argv[1]
+    video_path = args.video_path
 
-    if len(sys.argv) >= 3:
-        srt_path = sys.argv[2]
+    if args.srt_path:
+        srt_path = args.srt_path
     else:
         base, _ = os.path.splitext(video_path)
         srt_path = base + ".srt"
 
-    if len(sys.argv) >= 4:
-        output_path = sys.argv[3]
+    if args.output_path:
+        output_path = args.output_path
     else:
         base, _ = os.path.splitext(video_path)
         output_path = base + "_subtitled.mp4"
 
-    burn_subtitles(video_path, srt_path, output_path)
+    burn_subtitles(video_path, srt_path, output_path, args.deltaY)
