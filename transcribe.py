@@ -1,7 +1,8 @@
 import whisper
 import os
 import torch
-from deep_translator import GoogleTranslator
+import requests
+from opencc import OpenCC
 import subprocess
 import sys
 
@@ -27,45 +28,61 @@ def format_srt_time(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
 
-def generate_srt(segments, output_srt):
+def generate_srt(segments, output_srt, source_language=None):
     """生成SRT格式字幕文件"""
-    translator = None
-    try:
-        translator = GoogleTranslator(source='en', target='zh-CN')
-    except Exception:
-        print("Translation service unavailable, using English only")
+    src = source_language if source_language else 'auto'
+    print(f"Translating from: {src}")
+    cc = OpenCC('t2s')
 
     with open(output_srt, 'w', encoding='utf-8') as f:
         for i, segment in enumerate(segments, start=1):
             start = format_srt_time(segment['start'])
             end = format_srt_time(segment['end'])
 
-            english_text = segment['text'].strip()
+            original_text = segment['text'].strip()
+            translated_text = original_text
 
-            if translator:
-                try:
-                    simplified_text = translator.translate(english_text)
-                except Exception:
-                    simplified_text = english_text
-            else:
-                simplified_text = english_text
+            try:
+                if src.startswith('zh'):
+                    r = requests.get(f'https://api.mymemory.translated.net/get?q={requests.utils.quote(original_text)}&langpair=zh-CN|en')
+                    result = r.json()
+                    translated_text = result.get('responseData', {}).get('translatedText', original_text)
+                    chinese_text = cc.convert(original_text)
+                    english_text = translated_text
+                else:
+                    r = requests.get(f'https://api.mymemory.translated.net/get?q={requests.utils.quote(original_text)}&langpair=en|zh-CN|')
+                    result = r.json()
+                    translated_text = result.get('responseData', {}).get('translatedText', original_text)
+                    chinese_text = translated_text
+                    english_text = original_text
+                print(f"Translated: {original_text} -> {translated_text}")
+            except Exception as e:
+                print(f"Translation error: {e}")
+                if src.startswith('zh'):
+                    chinese_text = cc.convert(original_text)
+                    english_text = original_text
+                else:
+                    chinese_text = original_text
+                    english_text = original_text
 
             f.write(f"{i}\n")
             f.write(f"{start} --> {end}\n")
-            f.write(f"{english_text}\n")
-            f.write(f"{simplified_text}\n\n")
+            f.write(f"{chinese_text}\n")
+            f.write(f"{english_text}\n\n")
 
 
-def transcribe_audio(audio_path, device="cpu"):
+def transcribe_audio(audio_path, device="cpu", language=None):
     """使用Whisper转录音频"""
     print("加载Whisper模型...")
     model = whisper.load_model("tiny", device=device)
     print("开始转录...")
-    result = model.transcribe(audio_path, verbose=False, language='en')
-    return result["segments"]
+    result = model.transcribe(audio_path, verbose=False, language=language)
+    detected_lang = result.get("language", "en")
+    print(f"Detected language: {detected_lang}")
+    return result["segments"], detected_lang
 
 
-def main(video_path, output_srt):
+def main(video_path, output_srt, language=None):
     """主函数"""
     try:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -77,10 +94,10 @@ def main(video_path, output_srt):
         extract_audio(video_path, audio_path)
 
         print("开始转录音频...")
-        segments = transcribe_audio(audio_path, device)
+        segments, detected_lang = transcribe_audio(audio_path, device, language)
 
         print("生成字幕文件...")
-        generate_srt(segments, output_srt)
+        generate_srt(segments, output_srt, detected_lang)
 
         print(f"字幕已生成: {output_srt}")
 
@@ -93,7 +110,7 @@ def main(video_path, output_srt):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python transcribe.py <video_path> [output_srt]")
+        print("Usage: python transcribe.py <video_path> [output_srt] [language]")
         sys.exit(1)
 
     video_path = sys.argv[1]
@@ -102,5 +119,7 @@ if __name__ == "__main__":
     else:
         base, _ = os.path.splitext(video_path)
         output_srt = base + ".srt"
+    
+    language = sys.argv[3] if len(sys.argv) >= 4 else None
 
-    main(video_path, output_srt)
+    main(video_path, output_srt, language)
