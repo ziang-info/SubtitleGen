@@ -10,7 +10,7 @@ def burn_subtitles(video_path, srt_path, output_path):
     ffmpeg_command = [
         "ffmpeg",
         "-i", video_path,
-        "-vf", f"subtitles='{srt_escaped}'",
+        "-vf", f"subtitles='{srt_escaped}':force_style='Fontname=Roboto,FontSize=12,PrimaryColour=&H00FFFFFF,OutlineColour=&H40202020,BackColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0'",
         "-c:v", "libx264",
         "-c:a", "aac",
         "-strict", "experimental",
