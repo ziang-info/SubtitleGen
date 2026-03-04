@@ -67,8 +67,12 @@ def generate_srt(segments, output_srt, source_language=None):
 
             f.write(f"{i}\n")
             f.write(f"{start} --> {end}\n")
-            f.write(f"{chinese_text}\n")
-            f.write(f"{english_text}\n\n")
+            if src.startswith('zh'):
+                f.write(f"{chinese_text}\n")
+                f.write(f"{english_text}\n\n")
+            else:
+                f.write(f"{english_text}\n")
+                f.write(f"{chinese_text}\n\n")
 
 
 def transcribe_audio(audio_path, device="cpu", language=None):
