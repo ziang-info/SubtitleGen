@@ -1,5 +1,5 @@
 # Video Subtlte Generationor
-# 视频子母生成器
+# 视频字幕生成器
 
 * 为视频自动生成子母，直接支持中英双语。
 
