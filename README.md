@@ -1,7 +1,8 @@
+# Video Subtlte Generationor
+# 视频子母生成器
 
-Video Subtlte Generationor
+* 为视频自动生成子母，直接支持中英双语。
 
-中英双语
 
 ## 安装依赖
 
